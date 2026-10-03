@@ -38,7 +38,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (container_name) (rate(docker_container_cpu_usage_total{container_name=~\"${container:regex}\"}[5m])) / 1e7",
+          "expr": "sum by (container_name) (rate(docker_container_cpu_usage_total{environment=~\"${environment:regex}\", com_docker_compose_service=~\"${service:regex}\", container_name=~\"${container:regex}\"}[5m])) / 1e7",
           "legendFormat": "{{container_name}}",
           "refId": "A"
         }
@@ -77,7 +77,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (container_name) (docker_container_mem_usage{container_name=~\"${container:regex}\"})",
+          "expr": "sum by (container_name) (docker_container_mem_usage{environment=~\"${environment:regex}\", com_docker_compose_service=~\"${service:regex}\", container_name=~\"${container:regex}\"})",
           "legendFormat": "{{container_name}}",
           "refId": "A"
         }
@@ -116,7 +116,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (container_name) (rate(docker_container_net_rx_bytes{container_name=~\"${container:regex}\"}[5m]))",
+          "expr": "sum by (container_name) (rate(docker_container_net_rx_bytes{environment=~\"${environment:regex}\", com_docker_compose_service=~\"${service:regex}\", container_name=~\"${container:regex}\"}[5m]))",
           "legendFormat": "{{container_name}}",
           "refId": "A"
         }
@@ -155,7 +155,7 @@
       },
       "targets": [
         {
-          "expr": "sum by (container_name) (rate(docker_container_net_tx_bytes{container_name=~\"${container:regex}\"}[5m]))",
+          "expr": "sum by (container_name) (rate(docker_container_net_tx_bytes{environment=~\"${environment:regex}\", com_docker_compose_service=~\"${service:regex}\", container_name=~\"${container:regex}\"}[5m]))",
           "legendFormat": "{{container_name}}",
           "refId": "A"
         }
@@ -183,7 +183,59 @@
           "type": "prometheus",
           "uid": "prometheus"
         },
-        "definition": "label_values(docker_container_cpu_usage_total, container_name)",
+        "definition": "label_values(docker_container_cpu_usage_total, environment)",
+        "includeAll": true,
+        "label": "Ambiente",
+        "multi": true,
+        "name": "environment",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(docker_container_cpu_usage_total, environment)",
+          "refId": "Prometheus-environment-Variable-Query"
+        },
+        "refresh": 2,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": "Todos",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(docker_container_cpu_usage_total{environment=~\"$environment\"}, com_docker_compose_service)",
+        "includeAll": true,
+        "label": "Serviço",
+        "multi": true,
+        "name": "service",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(docker_container_cpu_usage_total{environment=~\"$environment\"}, com_docker_compose_service)",
+          "refId": "Prometheus-service-Variable-Query"
+        },
+        "refresh": 2,
+        "regex": "",
+        "type": "query"
+      },
+      {
+        "allValue": ".*",
+        "current": {
+          "selected": true,
+          "text": "Todos",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "definition": "label_values(docker_container_cpu_usage_total{environment=~\"$environment\", com_docker_compose_service=~\"$service\"}, container_name)",
         "includeAll": true,
         "label": "Container",
         "multi": true,
@@ -191,7 +243,7 @@
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(docker_container_cpu_usage_total, container_name)",
+          "query": "label_values(docker_container_cpu_usage_total{environment=~\"$environment\", com_docker_compose_service=~\"$service\"}, container_name)",
           "refId": "Prometheus-container-Variable-Query"
         },
         "refresh": 2,
@@ -206,5 +258,5 @@
   },
   "title": "Docker - Containers",
   "uid": "docker-containers",
-  "version": 1
+  "version": 2
 }

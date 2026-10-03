@@ -2,14 +2,13 @@
 
 Este Compose oferece ambientes separados para produção e desenvolvimento, com
 Nginx e PHP-FPM em containers distintos. Inclui MariaDB, phpMyAdmin, coleta de
-logs com Fluent Bit e Loki e métricas dos containers via API Docker, Prometheus
+logs com Grafana Alloy e Loki e métricas dos containers via API Docker, Prometheus
 e dashboards provisionados no Grafana.
 
 ## Requisitos
 
 - Docker Engine e Docker Compose v2.
-- Um host Linux com o driver de logs Docker `json-file` (padrão), para a coleta
-  de logs em `/var/lib/docker/containers`.
+- Acesso ao socket da API do Docker para coleta de métricas e logs.
 
 ## Preparar e iniciar
 
@@ -44,7 +43,7 @@ compose stop` com os serviços correspondentes, por exemplo:
 
 ```sh
 docker compose --profile development stop php-development nginx-development
-docker compose --profile observability stop grafana prometheus docker-metrics fluent-bit loki
+docker compose --profile observability stop grafana prometheus docker-metrics alloy loki
 docker compose --profile database stop phpmyadmin mysql
 ```
 
@@ -81,11 +80,25 @@ docker compose exec php-production php artisan migrate --force
 No phpMyAdmin, entre com o usuário e a senha `MYSQL_USER` e `MYSQL_PASSWORD`
 configurados em `.env`. O Grafana é provisionado com Loki e Prometheus como
 datasources, além do dashboard **Docker - Containers** na pasta **Docker**.
-Ele apresenta CPU, memória e tráfego de rede por container e permite filtrar
-qual container exibir. Telegraf consulta a API Docker a cada 15 segundos e
-Prometheus mantém as métricas por 15 dias no seu volume. Para consultar logs,
-use **Explore**, selecione Loki e execute `{job="docker"}`; a retenção
-configurada no Loki é de sete dias.
+Ele apresenta CPU, memória e tráfego de rede por container e permite combinar
+os filtros **Ambiente**, **Serviço** e **Container**. Para ver só produção,
+selecione `production` em **Ambiente** e deixe os demais filtros em **Todos**.
+Para comparar produção com MariaDB, selecione `production` e `shared` em
+**Ambiente**, e `php-production`, `nginx-production` e `mysql` em **Serviço**.
+Telegraf consulta a API Docker a cada 15 segundos e Prometheus mantém as métricas
+por 15 dias no seu volume. Alloy envia
+os logs ao Loki com os rótulos `environment`, `service`, `container` e `job`.
+As aplicações recebem `environment=production` ou `environment=development`;
+MariaDB e phpMyAdmin recebem `environment=shared`.
+Para consultar logs, use **Explore**, selecione Loki e execute, por exemplo:
+
+```logql
+{environment="production", service="nginx-production"}
+```
+
+A consulta `{job="docker"}` continua disponível para consultar todos os logs;
+também é possível filtrar por `{environment="production"}` ou
+`{service="mysql"}`. A retenção configurada no Loki é de sete dias.
 
 ## Configuração e dados
 
@@ -95,10 +108,10 @@ configure `MYSQL_BIND_ADDRESS` conscientemente e restrinja o acesso com firewall
 
 Os dados do MariaDB, Loki e Grafana persistem em volumes Docker. Faça backup desses
 volumes antes de manutenção. O Compose configura rotação dos logs do Docker em
-arquivos de até 10 MB, mantendo três arquivos por container; Fluent Bit envia
-esses logs ao Loki. O coletor de métricas acessa o socket do Docker, que
-concede controle administrativo sobre o daemon; mantenha esse acesso restrito
-e habilite observabilidade apenas quando necessário.
+arquivos de até 10 MB, mantendo três arquivos por container; Alloy envia esses
+logs ao Loki por meio da API do Docker. Alloy e o coletor de métricas acessam o socket do Docker,
+que concede controle administrativo sobre o daemon; mantenha esse acesso
+restrito e habilite observabilidade apenas quando necessário.
 
 > **Atenção na troca de MySQL:** o volume `mysql-data` não deve ser reutilizado
 > diretamente com MariaDB como se fosse uma migração. Faça backup e migre os
