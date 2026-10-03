@@ -1,0 +1,5 @@
+.env
+apps/producao/*
+!apps/producao/.gitkeep
+apps/desenvolvimento/*
+!apps/desenvolvimento/.gitkeep
